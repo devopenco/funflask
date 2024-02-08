@@ -1,0 +1,74 @@
+{% extends 'base.html' %} {% block content %}
+
+{% if current_user.is_authenticated %}
+<form class="border p-3 pr-6" method="post">
+  <div class="flex mt-3 items-center">
+    <label for="title" class="w-[50px] text-right">Title</label>
+    <input
+      id="title"
+      class="border px-1 grow ml-2"
+      type="text"
+      name="title"
+      required
+    />
+    <label for="author" class="w-[50px] ml-3">Author</label>
+    <input
+      id="author"
+      class="border px-1 flex-none ml-2"
+      type="text"
+      name="author"
+      autocomplete="off"
+      required
+    />
+  </div>
+  <div class="flex mt-3 items-cente">
+    <label for="url" class="w-[50px] text-right">Url</label>
+    <input
+      id="url"
+      class="border px-1 grow ml-2"
+      type="text"
+      name="url"
+      autocomplete="off"
+      required
+    />
+  </div>
+  <div class="text-center mt-3">
+    <input
+      class="bg-indigo-500 text-white rounded-lg px-5 py-1"
+      type="submit"
+      name="submit"
+      value="Add"
+    />
+  </div>
+</form>
+{% endif %}
+<ul class="divide-y divide-blue-200 border mt-6">
+  {% for channel in channels %}
+  <li class="flex py-2 px-4 items-center">
+    <span>{{ channel.title }}</span>-<span>{{ channel.author }}</span>
+    {% if current_user.is_authenticated %}
+    <div class="ml-auto flex items-center">
+      <a
+        href="{{url_for('edit',channel_id=channel.id)}}"
+        class="bg-indigo-500 text-white rounded-lg px-2"
+        >Edit</a
+      >
+      <form method="post" action="{{url_for('delete',channel_id=channel.id)}}">
+        <input
+          class="bg-indigo-500 text-white rounded-lg px-2 ml-1"
+          type="submit"
+          value="Delete"
+        />
+      </form>
+    </div>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+<div class="py-2 text-right text-sm">{{ channels|length }} CHANNELS</div>
+<img
+  class="block mx-auto"
+  alt="totoro"
+  src="{{url_for('static',filename='images/totoro.gif')}}"
+/>
+{% endblock %}

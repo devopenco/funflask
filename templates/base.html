@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% block head %}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ current_user.username }}'s YOUTUBE Subscriptions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% endblock %}
+  </head>
+  <body class="font-sans">
+    <div class="w-full max-w-[580px] mx-auto">
+      <div>
+        {% for message in get_flashed_messages() %}
+        <div class="alert">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% if current_user.is_authenticated %}
+      <div class="mt-6">
+        <img
+          class="inline align-text-bottom w-[40px]"
+          alt="Avatar"
+          src="{{url_for('static',filename='images/avatar.png')}}"
+        />
+        <h1 class="text-indigo-600 inline">
+          {{ current_user.username }}'s Subscriptions
+        </h1>
+      </div>
+      {% endif %}
+      <nav>
+        <ul class="flex space-x-3 bg-black text-white py-1 px-2 my-6">
+          <li><a href="{{url_for('index')}}">Home</a></li>
+          {% if current_user.is_authenticated %}
+          <li><a href="{{url_for('logout')}}">Logout</a></li>
+          <li><a href="{{url_for('profile')}}">Profile</a></li>
+          {% if current_user.is_superadmin() %}
+          <li><a href="{{url_for('setting')}}">Setting</a></li>
+          {% endif %}  {% else %}
+          <li><a href="{{url_for('login')}}">Signin</a></li>
+          <li><a href="{{url_for('register')}}">Signup</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% block content %}{% endblock %}
+      <footer class="text-zinc-800 mt-6 p-2 text-center">
+        <small
+          >&copy; Hi 2024
+          <a target="_blank" href="https://devopen.co">DEV云站</a></small
+        >
+      </footer>
+    </div>
+  </body>
+</html>
