@@ -7,8 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, UserMixin, login_required, current_user
-from flask_login import login_user, logout_user
+from flask_login import LoginManager, UserMixin, login_required, current_user, login_user, logout_user
 
 
 class Base(DeclarativeBase):
@@ -23,8 +22,7 @@ else:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'dev'
-app.config['SQLALCHEMY_DATABASE_URI'] = prefix + os.path.join(
-    app.root_path, 'data.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = prefix + os.path.join(app.root_path, 'data.db')
 # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 login_manager = LoginManager(app)
@@ -87,23 +85,25 @@ def initdb(drop):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    print(Channel.user_id)
     if request.method == 'POST':
         title = request.form.get('title')
         author = request.form.get('author')
         url = request.form.get('url')
 
-        channel = Channel(title=title,
-                          author=author,
-                          url=url,
-                          user_id=current_user.id)
+        channel = Channel(title=title, author=author, url=url, user_id=current_user.id)
         db.session.add(channel)
         db.session.commit()
         flash('Channel added.')
         return redirect(url_for('index'))
 
-    # channels = Channel.query.where(Channel.user_id == current_user.id).all()
-    channels = Channel.query.all()
+    if current_user.is_authenticated:
+        if current_user.name == 'Admin':
+            channels = Channel.query.all()
+        else:
+            channels = Channel.query.where(Channel.user_id == current_user.id).all()
+    else:
+        # channels = Channel.query.all()
+        channels = db.session.query(Channel).join(User).filter(User.blocked == '0').all()
 
     return render_template('index.html', channels=channels)
 
@@ -153,17 +153,14 @@ def page_not_found(e):
 
 @login_manager.user_loader
 def load_user(user_id):
-    user = User.query.get(int(user_id))
+    # user = User.query.get(int(user_id))
+    user = db.session.get(User, int(user_id))
     return user
 
 
 @app.cli.command()
 @click.option('--username', prompt=True, help='The username used to login.')
-@click.option('--password',
-              prompt=True,
-              hide_input=True,
-              confirmation_prompt=True,
-              help='The password used to login.')
+@click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True, help='The password used to login.')
 def admin(username, password):
     """Create Super Admin"""
     db.create_all()
@@ -211,12 +208,21 @@ def register():
 
 
 # 超管禁用个人用户
-@app.route('/setting', methods=['GET', 'POST'])
+@app.route('/setting', methods=['GET'])
 @login_required
 def setting():
     users = User.query.where(User.name != 'Admin').all()
-
     return render_template('setting.html', users=users)
+
+
+@app.post('/setting/<int:cid>')
+def block(cid):
+    blocklist = request.form.get('blocklist', '').split(',')
+    for username in blocklist:
+        User.query.filter(User.username == username, User.name != 'Admin').update({'blocked': cid})
+    db.session.commit()
+    flash('User blocked successfully')
+    return redirect(url_for('setting'))
 
 
 # 用户修改用户名及密码
@@ -235,8 +241,7 @@ def profile():
             else:
                 password = password1
 
-        _user = User.query.filter(User.username == username, User.id
-                                  != current_user.id).first()
+        _user = User.query.filter(User.username == username, User.id != current_user.id).first()
         if _user is not None:
             flash('Username already exists')
             return redirect(url_for('profile'))
@@ -262,9 +267,13 @@ def login():
             return redirect(url_for('login'))
         user = User.query.where(User.username == username).first()
         if user is not None and user.validate_password(password):
+            if user.blocked == '1':
+                flash('You are blocked')
+                return redirect(url_for('index'))
             login_user(user)
             flash('Login success')
             return redirect(url_for('index'))
+
         flash('Invalid username or password.')
         return redirect(url_for('login'))
     return render_template('login.html')

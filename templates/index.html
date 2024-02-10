@@ -45,7 +45,7 @@
 <ul class="divide-y divide-blue-200 border mt-6">
   {% for channel in channels %}
   <li class="flex py-2 px-4 items-center">
-    <span>{{ channel.title }}</span>-<span>{{ channel.author }}</span>
+    <span>{{ channel.title }}</span>-<span>{{ channel.author }}</span>-<span>{{channel.user.username}}</span>
     {% if current_user.is_authenticated %}
     <div class="ml-auto flex items-center">
       <a
